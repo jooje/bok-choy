@@ -28,6 +28,7 @@ class InputTest(WebAppTest):
         select.visit()
         select.select_car('fiat')
         self.assertEquals(select.output, 'Fiat')
+        self.assertEquals(select.selection, [False, False, True, False])
 
     def test_checkbox(self):
         checkbox = CheckboxPage(self.browser)

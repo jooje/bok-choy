@@ -1,7 +1,7 @@
 from mock import Mock
 from unittest import TestCase
 
-from bok_choy.query import Query, BrowserQuery, SubQuery
+from bok_choy.query import Query, BrowserQuery, SubQuery, RETRY_EXCEPTIONS
 
 class TestQuery(TestCase):
     def setUp(self):
@@ -30,9 +30,10 @@ class TestQuery(TestCase):
         self.assertEquals([], query.results)
         self.assertEquals([], query.results)
 
-        query.reset()
+        returned_query = query.reset()
 
         self.assertEquals([0], query.results)
+        self.assertEquals(returned_query, query)
 
     def test_replace_resets(self):
         seeds = (range(i) for i in range(10))
@@ -75,6 +76,21 @@ class TestQuery(TestCase):
         self.assertEquals(1, len(filtered))
         self.assertEquals(mapped[3].text, filtered[0].text)
 
+    def test_filter_invalid_args(self):
+
+        # Both filter func and params
+        with self.assertRaises(TypeError):
+            self.query.filter(lambda x: x % 2 == 0, text="3")
+
+        # Neither filter func nor params
+        with self.assertRaises(TypeError):
+            self.query.filter()
+
+    def test_retry_on_error(self):
+        seed = Mock()
+        seed.side_effect = list(RETRY_EXCEPTIONS) + [["success"]]
+        self.assertEqual(["success"], Query(seed_fn=seed).results)
+
     def test_length(self):
         self.assertEquals(5, len(self.query))
         self.assertEquals(3, len(self.query.filter(lambda x: x % 2 == 0)))
@@ -109,6 +125,22 @@ class TestQuery(TestCase):
             u"Query(<lambda>).filter(text='foo')",
             repr(self.query.filter(text='foo'))
         )
+
+    def test_first(self):
+        query = Query(lambda: range(2))
+        self.assertEqual([0], query.first.results)
+        self.assertEqual([0], query.first.first.results)
+
+    def test_first_no_results(self):
+        query = Query(lambda: [])
+        self.assertEqual([], query.first.results)
+
+    def test_nth(self):
+        query = Query(lambda: range(2))
+        self.assertEqual([], query.nth(-1).results)
+        self.assertEqual([0], query.nth(0).results)
+        self.assertEqual([1], query.nth(1).results)
+        self.assertEqual([], query.nth(2).results)
 
 
 class TestBrowserQuery(TestCase):

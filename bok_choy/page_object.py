@@ -10,9 +10,11 @@ import urlparse
 from abc import ABCMeta, abstractmethod, abstractproperty
 from collections import defaultdict
 from functools import wraps
+from contextlib import contextmanager
+from textwrap import dedent
 
+from .query import BrowserQuery
 from .promise import EmptyPromise, fulfill_before
-from .safe_selenium import SafeSelenium
 
 
 class WrongPageError(Exception):
@@ -99,7 +101,7 @@ class _PageObjectMetaclass(ABCMeta):
         return super(_PageObjectMetaclass, mcs).__new__(mcs, cls_name, cls_bases, cls_attrs)
 
 
-class PageObject(SafeSelenium):
+class PageObject(object):
     """
     Encapsulates user interactions with a specific part
     of a web application.
@@ -147,6 +149,12 @@ class PageObject(SafeSelenium):
     """
 
     __metaclass__ = _PageObjectMetaclass
+
+    def __init__(self, browser):
+        """
+        Initialize the page object to use `browser` (a Splinter browser instance).
+        """
+        self.browser = browser
 
     @abstractmethod
     def is_browser_on_page(self):
@@ -283,3 +291,32 @@ class PageObject(SafeSelenium):
 
         with fulfill_before(is_on_page_promise):
             return self
+
+    def q(self, **kwargs):
+        """
+        Construct a query on the browser.
+        """
+        return BrowserQuery(self.browser, **kwargs)
+
+    @contextmanager
+    def handle_alert(self, confirm=True):
+        """
+        Ensure that alerts are dismissed in a way that works across browsers.
+
+        `ok` indicates whether to confirm or cancel the alert.
+
+        Example usage:
+
+            with self.handle_alert():
+                self.q(css='input.submit-button').first.click()
+        """
+
+        # Before executing the `with` block, stub the confirm/alert functions
+        script = dedent("""
+            window.confirm = function() {{ return {0}; }};
+            window.alert = function() {{ return; }};
+        """.format("true" if confirm else "false")).strip()
+        self.browser.execute_script(script)
+
+        # Execute the `with` block
+        yield

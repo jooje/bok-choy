@@ -6,6 +6,7 @@ from copy import copy
 from selenium.common.exceptions import WebDriverException, StaleElementReferenceException
 from splinter.exceptions import ElementDoesNotExist
 from collections import Sequence
+from itertools import islice
 
 from bok_choy.promise import Promise, fulfill
 
@@ -50,7 +51,10 @@ class Query(Sequence):
     """
     def __init__(self, seed_fn, msg_base=None):
         if msg_base is None:
-            msg_base = u'Query({})'.format(seed_fn.__name__)
+            if hasattr(seed_fn, '__name__'):
+                msg_base = u'Query({})'.format(seed_fn.__name__)
+            else:
+                msg_base = u'Query'
 
         self.seed_fn = seed_fn
         self.transforms = []
@@ -171,9 +175,10 @@ class Query(Sequence):
 
     def reset(self):
         """
-        Reset the cache of query results.
+        Reset the cache of query results and returns the query.
         """
         self._results = None
+        return self
 
     def __getitem__(self, key):
         return self.results[key]
@@ -212,9 +217,31 @@ class Query(Sequence):
     @property
     def first(self):
         """
-        Return a Query that only selects the first element of this Query.
+        Return a Query that selects only the first element of this Query.
+        If no elements are available, returns an empty list.
         """
-        return self.transform(lambda xs: [iter(xs).next()], 'first')
+        def _transform(xs):
+            try:
+                return [iter(xs).next()]
+            except StopIteration:
+                return []
+
+        return self.transform(_transform, 'first')
+
+    def nth(self, index):
+        """
+        Return a query that selects the element at `index` (starts from 0).
+        If no such element is available, raises an `IndexError`.
+        """
+        def _transform(xs):
+            try:
+                return [next(islice(iter(xs), index, None))]
+            except StopIteration:
+                return []
+            except ValueError:
+                return []
+
+        return self.transform(_transform, 'nth')
 
     def click(self):
         """
@@ -223,18 +250,18 @@ class Query(Sequence):
         """
         self.map(lambda el: el.click(), 'click()').execute()
 
-    @property
-    def selected(self):
-        """
-        Call `.selected` on all elements selected by this Query.
-        """
-        return self.map(lambda el: el.selected, 'selected')
-
     def fill(self, text):
         """
         Call `.fill(text)` on all elements selected by this Query.
         """
         return self.map(lambda el: el.fill(text), 'fill({!r})'.format(text)).execute()
+
+    @property
+    def selected(self):
+        """
+        Call `.selected` on all elements selected by this Query.
+        """
+        return self.map(lambda el: el.selected, 'selected').results
 
     def __repr__(self):
         return u".".join([self.msg_base] + self.msg_stack)

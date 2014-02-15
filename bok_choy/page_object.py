@@ -14,7 +14,7 @@ from contextlib import contextmanager
 from textwrap import dedent
 
 from .query import BrowserQuery
-from .promise import EmptyPromise, fulfill_before
+from .promise import Promise
 
 
 class WrongPageError(Exception):
@@ -284,13 +284,10 @@ class PageObject(object):
         Raises a `WebAppUIConfigError` if the page object doesn't exist.
         Raises a `BrokenPromise` exception if the page fails to load within `timeout` seconds.
         """
-        is_on_page_promise = EmptyPromise(
-            self.is_browser_on_page, "loaded page {!r}".format(self),
+        return Promise(
+            lambda: (self.is_browser_on_page(), self), "loaded page {!r}".format(self),
             timeout=timeout
-        )
-
-        with fulfill_before(is_on_page_promise):
-            return self
+        ).fulfill()
 
     def q(self, **kwargs):
         """

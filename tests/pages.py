@@ -5,7 +5,7 @@ Page objects for interacting with the test site.
 import os
 import time
 from bok_choy.page_object import PageObject
-from bok_choy.promise import EmptyPromise, fulfill_before, fulfill_after, fulfill
+from bok_choy.promise import EmptyPromise
 from bok_choy.javascript import js_defined, requirejs, wait_for_js
 
 
@@ -166,29 +166,19 @@ class DelayPage(SitePage):
         after a delay.
         """
 
-        click_ready = EmptyPromise(
-            lambda: self.q(css='div#ready').present, "Click ready"
-        )
-
-        output_ready = EmptyPromise(
-            lambda: self.q(css='div#output').present, "Output available"
-        )
-
-        with fulfill_after(output_ready):
-            with fulfill_before(click_ready):
-                self.q(css='div#fixture button').first.click()
+        EmptyPromise(lambda: self.q(css='div#ready').present, "Click ready").fulfill()
+        self.q(css='div#fixture button').first.click()
+        EmptyPromise(lambda: self.q(css='div#output').present, "Output available").fulfill()
 
     def make_broken_promise(self):
         """
         Make a promise that will not be fulfilled.
         Should raise a `BrokenPromise` exception.
         """
-        bad_promise = EmptyPromise(
+        return EmptyPromise(
             lambda: self.q(css='div#not_present').present, "Invalid div appeared",
             try_limit=3, try_interval=0.01
-        )
-
-        return fulfill(bad_promise)
+        ).fulfill()
 
 
 class NextPage(SitePage):

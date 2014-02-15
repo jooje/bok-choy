@@ -5,7 +5,7 @@ import functools
 import json
 from textwrap import dedent
 from selenium.common.exceptions import TimeoutException
-from .promise import EmptyPromise, fulfill
+from .promise import EmptyPromise
 
 
 def js_defined(*args):
@@ -102,24 +102,18 @@ def _wait_for_js(self):
 
     # Wait for JavaScript variables to be defined
     if hasattr(self, '_js_vars') and self._js_vars:
-
-        js_defined_promise = EmptyPromise(
+        EmptyPromise(
             lambda: _are_js_vars_defined(self.browser, self._js_vars),
             "JavaScript variables defined: {0}".format(", ".join(self._js_vars))
-        )
-
-        fulfill(js_defined_promise)
+        ).fulfill()
 
     # Wait for RequireJS dependencies to load
     if hasattr(self, '_requirejs_deps') and self._requirejs_deps:
-
-        requirejs_promise = EmptyPromise(
+        EmptyPromise(
             lambda: _are_requirejs_deps_loaded(self.browser, self._requirejs_deps),
             "RequireJS dependencies loaded: {0}".format(", ".join(self._requirejs_deps)),
             try_limit=5
-        )
-
-        fulfill(requirejs_promise)
+        ).fulfill()
 
 
 def _are_js_vars_defined(browser, js_vars):

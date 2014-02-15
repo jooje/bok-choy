@@ -55,18 +55,8 @@ class Promise(object):
             check_func = lambda: (True, "Hello world!")
 
             # Check up to 5 times if the operation has completed
-            promise = Promise(check_func, "Operation has completed", try_limit=5)
-
-            # Ensure that the next operation executes only if the promise is satisfied
-            # `result` will be "Hello world!", because that's what `check_func` returned
-            # If the promise isn't satisfied, this will throw a `BrokenPromise` exception
-            with fulfill_before(promise) as result:
-
-                # This should print "Hello World!"
-                print result
-
-            # Alternatively, you can get the result directly:
-            print fulfill(promise)
+            result = Promise(check_func, "Operation has completed", try_limit=5).fulfill()
+            print result
         """
         self._check_func = check_func
         self._description = description
@@ -75,10 +65,23 @@ class Promise(object):
         self._timeout = timeout
         self._num_tries = 0
 
+    def fulfill(self):
+        """
+        Evaluate the promise and return the result.
+        If the promise is not satisfied within the time- or attempt-limits,
+        raise a `BrokenPromise` exception.
+        """
+        is_fulfilled, result = self._check_fulfilled()
+
+        if is_fulfilled:
+            return result
+        else:
+            raise BrokenPromise(self)
+
     def __str__(self):
         return str(self._description)
 
-    def check_fulfilled(self):
+    def _check_fulfilled(self):
         """
         Return tuple `(is_fulfilled, result)` where
         `is_fulfilled` is a boolean indicating whether the promise has been fulfilled
@@ -137,47 +140,3 @@ class EmptyPromise(Promise):
         """
         full_check_func = lambda: (check_func(), None)
         super(EmptyPromise, self).__init__(full_check_func, description, **kwargs)
-
-
-@contextmanager
-def fulfill_before(promise):
-    """
-    Block execution until the `promise` is fulfilled.
-    If not fulfilled, raise a `BrokenPromise` exception.
-    """
-
-    is_fulfilled, result = promise.check_fulfilled()
-
-    if is_fulfilled:
-        yield result
-    else:
-        raise BrokenPromise(promise)
-
-@contextmanager
-def fulfill_after(promise):
-    """
-    After the `with` block executes, wait until the `promise` is fulfilled.
-    In this case, any output from the promise is discarded.
-    """
-
-    # Execute the 'with' block
-    yield
-
-    # Block until the promise is fulfilled or we time out
-    is_fulfilled, _ = promise.check_fulfilled()
-
-    if not is_fulfilled:
-        raise BrokenPromise(promise)
-
-
-def fulfill(promise):
-    """
-    Block until the `promise` is fulfilled and return the output.
-    Raises a `BrokenPromise` exception if the promise is not fulfilled.
-    """
-    is_fulfilled, result = promise.check_fulfilled()
-
-    if is_fulfilled:
-        return result
-    else:
-        raise BrokenPromise(promise)

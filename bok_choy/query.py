@@ -8,7 +8,7 @@ from splinter.exceptions import ElementDoesNotExist
 from collections import Sequence
 from itertools import islice
 
-from bok_choy.promise import Promise, fulfill
+from bok_choy.promise import Promise
 
 
 SUPPORTED_QUERY_TYPES = ['css', 'id', 'value', 'text', 'xpath']
@@ -156,13 +156,13 @@ class Query(Sequence):
             try_interval (float): The number of seconds to wait between each try.
             timeout (float): The maximum number of seconds to spend retrying.
         """
-        return fulfill(Promise(
+        return Promise(
             no_error(self._execute),
             u"Executing {!r}".format(self),
             try_limit=try_limit,
             try_interval=try_interval,
             timeout=timeout,
-        ))
+        ).fulfill()
 
     @property
     def results(self):

@@ -1,0 +1,2 @@
+Guarded and Unguarded Methods
+=============================

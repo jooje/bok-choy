@@ -3,12 +3,17 @@ bok-choy
 
 UI-level acceptance test framework.
 
-Contents:
-
 .. toctree::
    :maxdepth: 2
 
+   intro
    tutorial
+   guidelines
+   queries
+   promises
+   javascript
+   saucelabs
+   guarded
    api_reference
 
 

@@ -1,5 +1,5 @@
 """
-Tools for querying html inside a running browser.
+Tools for interacting with the DOM inside a browser.
 """
 
 from copy import copy
@@ -14,17 +14,7 @@ from bok_choy.promise import Promise
 SUPPORTED_QUERY_TYPES = ['css', 'id', 'value', 'text', 'xpath']
 
 
-class KeepWaiting(Exception):
-    """
-    Dummy exception to indicate that a check function wants to continue waiting.
-    """
-    pass
-
-
-RETRY_EXCEPTIONS = (
-    WebDriverException, StaleElementReferenceException,
-    ElementDoesNotExist, KeepWaiting
-)
+RETRY_EXCEPTIONS = (WebDriverException, StaleElementReferenceException, ElementDoesNotExist)
 
 
 def no_error(func):
@@ -205,7 +195,7 @@ class Query(Sequence):
         """
         Return the html attributes of each of the results of this Query.
         """
-        return self.map(lambda el: el.html).results
+        return self.map(lambda el: el.html, 'html').results
 
     @property
     def value(self):

@@ -3,6 +3,7 @@ from unittest import TestCase
 
 from bok_choy.query import Query, BrowserQuery, SubQuery, RETRY_EXCEPTIONS
 
+
 class TestQuery(TestCase):
     def setUp(self):
         self.query = Query(lambda: range(5))

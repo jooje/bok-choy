@@ -10,6 +10,8 @@ Contents:
 
    tutorial
    api_reference
+   queries
+   promises
 
 
 
